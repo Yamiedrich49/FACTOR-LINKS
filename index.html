@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f6f8f5">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="description" content="数字と数字の公約数を手がかりに、線のつながりを解き明かす数字パズル。">
+<title>Factor Links | 公約数リンク</title>
+<style>
+:root{
+ color-scheme:light;--canvas:#f6f8f5;--paper:#fffefa;--ink:#183538;--ink2:#416164;--quiet:#849b9c;
+ --hair:#dfeae6;--fixed:#eaf1ed;--mint:#059f9b;--mint-dark:#077a78;--mint-pale:#e5f6f1;
+ --amber:#ae7b38;--amber-pale:#fff4e0;--error:#ad6255;--error-pale:#fff3ef;
+ --cell:transparent;--gap:clamp(6px,2vw,10px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{font-family:-apple-system,BlinkMacSystemFont,"Hiragino Kaku Gothic ProN","Hiragino Sans","Yu Gothic",Meiryo,sans-serif;background:var(--canvas);color:var(--ink);font-synthesis:none}
+body{margin:0;min-height:100dvh;background:radial-gradient(ellipse 110% 44% at 50% -14%,#e8f3ef 0%,transparent 80%),var(--canvas);overscroll-behavior-y:contain}
+button{font:inherit;cursor:pointer;color:inherit;appearance:none;-webkit-appearance:none;touch-action:manipulation}
+button:focus-visible{outline:3px solid #58b8ad;outline-offset:3px}
+button:disabled{cursor:default}
+svg{display:block;flex-shrink:0}
+button,span,div{-webkit-touch-callout:none}
+main{width:min(100%,530px);margin:0 auto;padding:calc(12px + env(safe-area-inset-top,0px)) clamp(12px,3.5vw,20px) calc(22px + env(safe-area-inset-bottom,0px))}
+.header{display:flex;align-items:center;justify-content:space-between;gap:8px;height:52px}
+.wordmark{min-width:0;display:flex;align-items:center;gap:9px}
+.logo{width:30px;height:30px;display:grid;place-items:center;flex:none;border:1px solid #d4e5de;border-radius:10px;background:#f9fffc;box-shadow:0 2px 7px #214e3f0a}
+.wordmark h1{font-size:21px;line-height:1.08;letter-spacing:-.055em;margin:0;font-weight:850}
+.wordmark small{display:block;font-size:9px;letter-spacing:.16em;color:#7b9994;font-weight:780;margin-top:3px}
+.topactions{display:flex;gap:6px}
+.round{width:38px;height:38px;border-radius:13px;border:1px solid #e0eae5;background:#fffefa;display:grid;place-items:center;color:#5e797a;transition:transform .12s ease,background-color .12s ease}
+.round:active{transform:scale(.94)}
+.stage{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:15px 1px 9px}
+.stagebutton{display:flex;align-items:center;min-width:0;gap:9px;background:transparent;border:0;padding:4px 2px;text-align:left}
+.stageid{font-size:10px;letter-spacing:.105em;color:var(--mint-dark);font-weight:860;white-space:nowrap}
+.stagename{font-size:13px;max-width:158px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:780}
+.stagebutton svg{color:#92aaa5}
+.progresscount{font-size:12px;letter-spacing:.02em;white-space:nowrap;font-variant-numeric:tabular-nums;color:#819994}
+.progresscount b{font-size:16px;color:var(--ink);font-weight:800}
+.progressbar{height:3px;background:#ddeae5;border-radius:10px;margin:0 1px 13px;overflow:hidden}
+.progressbar>span{display:block;width:0%;height:100%;background:linear-gradient(90deg,#51c2ad,#079f9a);border-radius:inherit;transition:width .26s cubic-bezier(.25,.8,.25,1)}
+.legend{display:flex;justify-content:space-between;align-items:center;gap:8px;margin:0 3px 10px;color:#698681}
+.legenditem{display:flex;align-items:center;gap:7px;min-width:0;font-size:11px;font-weight:670;white-space:nowrap}
+.legendbar{display:block;height:6px;width:28px;position:relative;flex:none}
+.legendbar.s::before{content:"";position:absolute;top:2px;left:0;right:0;background:#b1c1bc;height:3px;border-radius:3px}
+.legendbar.d{background:radial-gradient(circle,#119e99 2.35px,transparent 2.8px) 0 0 / 9px 6px repeat-x}
+.boardframe{padding:13px clamp(10px,3vw,16px) 8px;border:1px solid #e3ece8;background:var(--paper);border-radius:25px;box-shadow:0 12px 35px #214d450a,0 1px 1px #213d3003;position:relative}
+.boardmeta{display:flex;justify-content:space-between;align-items:center;min-height:23px;gap:8px;margin:0 1px 12px}
+.boardmeta strong{font-size:12px;font-weight:780;letter-spacing:-.025em}
+.boardmeta .tiny{font-size:10px;color:#88a19a;letter-spacing:.015em;white-space:nowrap}
+.board{display:grid;grid-template-columns:repeat(5,minmax(0,1fr) var(--gap)) minmax(0,1fr);grid-template-rows:repeat(5,minmax(0,1fr) var(--gap)) minmax(0,1fr);width:100%;aspect-ratio:1;user-select:none;-webkit-user-select:none;touch-action:none}
+.cell{position:relative;z-index:2;min-width:0;min-height:0;border-radius:clamp(8px,2.7vw,12px);padding:0;border:1px solid #dfeae6;background:#fafcf9;display:grid;place-items:center;font-size:clamp(17px,5.7vw,26px);font-weight:810;line-height:1;letter-spacing:-.05em;font-variant-numeric:tabular-nums;color:#244b4b;transition:background-color .14s,border-color .14s,box-shadow .14s,color .14s;outline:none;touch-action:none}
+.cell:active:not(.fixed){background:#e9f7f2}
+.cell.fixed{background:#e8f0eb;border-color:#e5eee7;color:#304a4a}
+.cell.givenhint{background:#f8f0df;border-color:#ead8bc;color:#7b653f}
+.cell.entered{background:#f0f9f5;border-color:#c6e6db;color:#087f7d}
+.cell.peer:not(.selected):not(.fixed):not(.entered){background:#f4f9f5}
+.cell.selected:not(.fixed){z-index:5;box-shadow:0 0 0 2.1px #1bad9e,0 0 0 4.5px #e1f4ed;background:#f5fdf8;border-color:#d6f1e9}
+.cell.selected.entered{background:#eaf9f2}
+.cell.bad{background:var(--error-pale)!important;border-color:#d7a496!important;color:var(--error)!important;box-shadow:inset 0 0 0 1px #e0b6ab}
+.cell.draghover{z-index:8;box-shadow:0 0 0 3px #159c92,0 3px 15px #04887625;background:#e2f8ee}
+.cell.drag-source{opacity:.38}
+.cell .digit{display:block;pointer-events:none}
+.cell .digit.place{animation:place .22s cubic-bezier(.12,1.52,.4,1) both}
+.cell.twodigit{font-size:clamp(14px,4.6vw,22px)}
+.cell .notes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:0;place-items:center;width:95%;height:82%;font-size:clamp(7px,2vw,10px);font-weight:800;color:#a2b4ad;letter-spacing:0;pointer-events:none}
+.notes>span.on{color:#36877c}
+.edge{z-index:1;display:grid;place-items:center;pointer-events:none;overflow:visible;opacity:.97}
+.edge:before{content:"";display:block}
+.edge.h.s:before{height:2.5px;width:100%;background:#b6c5bf;border-radius:4px}
+.edge.v.s:before{width:2.5px;height:100%;background:#b6c5bf;border-radius:4px}
+.edge.h.d:before{width:100%;height:6px;background:radial-gradient(circle,#09a39c 2.15px,transparent 2.6px) center / 8px 6px repeat-x}
+.edge.v.d:before{height:100%;width:6px;background:radial-gradient(circle,#09a39c 2.15px,transparent 2.6px) center / 6px 8px repeat-y}
+.edge.near:before{filter:brightness(.9) drop-shadow(0 0 1.4px #0eb3a873)}
+.edge.tap:before{animation:line-tap .26s ease-out}
+.edge.invalid:before{background:#bf7264!important;box-shadow:0 0 0 1px #f7d9d1;border-radius:5px}
+.edge.solve:before{animation:solve .52s both;animation-delay:var(--delay,0s)}
+.boardstatus{font-size:11px;line-height:1.45;color:#839c96;font-weight:640;min-height:29px;display:flex;align-items:center;justify-content:center;text-align:center;margin:5px 1px 0;letter-spacing:.01em}
+.boardstatus strong{color:#187f79;font-weight:810}
+.dock{position:sticky;bottom:calc(7px + env(safe-area-inset-bottom,0px));z-index:12;margin-top:13px;border-radius:22px;border:1px solid #dfebe5;background:rgba(255,254,250,.98);padding:12px 9px 10px;box-shadow:0 12px 32px #154b3f1b,0 1px 4px #154b3f08;-webkit-backdrop-filter:blur(16px);backdrop-filter:blur(16px)}
+.dockheader{display:flex;align-items:baseline;justify-content:space-between;gap:7px;margin:0 5px 9px}
+.dockheader b{font-weight:820;font-size:12px}
+.dockheader span{font-size:10px;color:#90a59e;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.numpad{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px}
+.key{height:52px;border:1px solid #dce9e2;background:#f2f8f4;border-radius:12px;font-size:clamp(17px,4.9vw,22px);font-weight:840;letter-spacing:-.05em;font-variant-numeric:tabular-nums;touch-action:none;user-select:none;-webkit-user-select:none;transition:background-color .12s,border-color .12s,transform .12s,color .12s}
+.key:active,.key.pressed{transform:scale(.93);background:#ddf2e9;border-color:#8ecfbd}
+.dock.memo .key{background:#fcf4e5;border-color:#ecddc3;color:#7c663e}
+.dock.memo .key:active,.dock.memo .key.pressed{background:#f4e6c7}
+.toolrow{display:grid;grid-template-columns:.9fr .9fr 1fr 1.55fr;gap:6px;margin-top:9px}
+.tool{display:flex;gap:4px;justify-content:center;align-items:center;height:45px;white-space:nowrap;border-radius:11px;border:1px solid #e1eae4;background:#fbfdfa;color:#69827b;font-size:12px;font-weight:790;transition:transform .11s,background-color .12s}
+.tool svg{width:15px;height:15px}.tool:active,.primary:active{transform:scale(.97)}
+.tool:disabled{opacity:.38}
+.tool.on{color:#926c35;background:#fff4df;border-color:#edd9b9}
+.primary{border:0;border-radius:11px;background:#078e88;color:#fff;font-size:13px;font-weight:820;letter-spacing:.01em;box-shadow:0 4px 10px #078e881e;transition:background .2s,transform .12s}
+.primary:disabled{background:#b6d3ca;box-shadow:none}
+.toast{position:fixed;bottom:calc(197px + env(safe-area-inset-bottom,0px));left:50%;max-width:calc(100% - 32px);min-width:210px;transform:translate(-50%,9px);z-index:40;background:#244541f5;color:#fff;border-radius:100px;box-shadow:0 8px 30px #1b403626;padding:11px 17px;text-align:center;font-size:12px;font-weight:740;line-height:1.45;pointer-events:none;opacity:0;transition:opacity .16s,transform .16s}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+.ghost{position:fixed;z-index:99;pointer-events:none;width:50px;height:50px;border-radius:13px;display:grid;place-items:center;background:#f0fcf4;border:2px solid #23ad9a;color:#167e78;box-shadow:0 12px 25px #0d706e40;font-size:23px;font-weight:830;transform:translate(-50%,-50%) scale(1.04)}
+.ghost.memo{background:#fff4db;color:#936e36;border-color:#d1aa70}
+.modalback{position:fixed;inset:0;z-index:50;display:none;justify-content:center;align-items:flex-end;padding:18px 0 0;background:#133e3a61;-webkit-backdrop-filter:blur(4px);backdrop-filter:blur(4px)}
+.modalback.show{display:flex}
+.sheet{background:#fffefa;width:min(100%,530px);max-height:89dvh;overflow:auto;overscroll-behavior:contain;padding:21px 20px calc(20px + env(safe-area-inset-bottom,0px));border-radius:26px 26px 0 0;box-shadow:0 -15px 55px #0f3a302a;animation:sheetin .22s cubic-bezier(.14,.85,.32,1)}
+.sheetheader{display:flex;align-items:center;justify-content:space-between;gap:12px}.sheetheader h2{font-size:19px;letter-spacing:-.04em;margin:0}
+.x{width:34px;height:34px;border:0;border-radius:50%;display:grid;place-items:center;background:#f1f5f1;color:#648078;font-size:23px;line-height:1}
+.sheetp{font-size:12px;color:#6b8580;line-height:1.75;margin:11px 0 15px}
+.stagelist{display:grid;gap:7px}.stageopt{border:1px solid #e4ece6;background:#f9fbf8;border-radius:14px;padding:11px 12px;display:flex;gap:12px;align-items:center;text-align:left;width:100%}.stageopt.active{background:#e8f7ef;border-color:#99d8c3}.stageopt em{font-style:normal;font-size:17px;font-weight:850;width:28px;color:#12948b;font-variant-numeric:tabular-nums}.stageopt b{display:block;font-size:13px}.stageopt small{display:block;color:#7c938c;font-size:10px;margin-top:3px}.stageopt .tick{margin-left:auto;color:#078e88}
+.examples{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin:14px 0}
+.example{padding:12px 8px;border:1px solid #e3ede6;background:#f8fbf8;border-radius:15px;text-align:center}.example .pair{display:flex;justify-content:center;align-items:center;gap:10px;font-size:21px;font-weight:830;margin-bottom:8px}.example i{height:4px;width:24px;display:block}.example i.s{background:#aebfba;border-radius:3px}.example i.d{background:radial-gradient(circle,#009f9b 2px,transparent 2.5px) center / 8px 5px repeat-x}.example strong{display:block;font-size:12px}.example p{font-size:10px;color:#879991;margin:4px 0 0}
+.steps{font-size:12px;color:#45615b;line-height:1.85;padding-left:21px;margin:13px 0 20px}.steps li{margin:5px 0}
+.sheetbutton{display:block;width:100%;min-height:47px;margin-top:12px}.quiet{display:block;margin:12px auto 0;border:0;background:transparent;font-size:12px;font-weight:720;color:#6b8981;padding:10px}
+.winback{position:fixed;inset:0;z-index:55;display:none;align-items:center;justify-content:center;padding:25px;background:#153f3880;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}.winback.show{display:flex}
+.wincard{width:min(100%,355px);border-radius:27px;background:var(--paper);padding:30px 22px 22px;text-align:center;box-shadow:0 22px 85px #0d302d47;animation:sheetin .26s cubic-bezier(.2,1.25,.3,1)}
+.winicon{margin:0 auto 13px;width:68px;height:68px;border-radius:21px;border:1px solid #bbe4d3;background:#eaf9f0;color:#07938b;display:grid;place-items:center}
+.wincard h2{font-size:26px;font-weight:850;letter-spacing:-.055em;margin:0 0 9px}.wincard p{font-size:13px;line-height:1.75;color:#6c8880;margin:0 0 21px}.wincard .primary{width:100%;min-height:49px}.wincard .quiet{margin-top:7px}
+@keyframes place{0%{transform:translateY(-4px) scale(.86);opacity:.2}58%{transform:translateY(1px) scale(1.075);opacity:1}100%{transform:none;opacity:1}}
+@keyframes line-tap{0%{transform:scale(.78);opacity:.55}55%{transform:scale(1.23);opacity:1}100%{transform:none;opacity:1}}
+@keyframes solve{0%{filter:brightness(1);transform:scale(.88)}42%{filter:brightness(1.7) drop-shadow(0 0 3px #1cbbab65);transform:scale(1.12)}100%{filter:none;transform:none}}
+@keyframes sheetin{from{transform:translateY(13px);opacity:.75}to{transform:none;opacity:1}}
+@media(max-width:345px){main{padding-left:10px;padding-right:10px}.boardframe{padding-left:9px;padding-right:9px;border-radius:21px}.legenditem{font-size:10px}.legendbar{width:22px}.numpad{gap:4px}.key{height:49px;border-radius:10px}.tool{font-size:11px}.boardmeta .tiny{font-size:9px}}
+@media(min-width:510px){.cell{font-size:26px}.key{height:57px}.boardframe{padding-left:17px;padding-right:17px}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-delay:0ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<main id="app">
+ <header class="header">
+  <div class="wordmark">
+   <div class="logo" aria-hidden="true"><svg width="24" height="24" viewBox="0 0 26 26" fill="none"><path d="M6 6L20 20M20 6L6 20" stroke="#bcd8cc" stroke-width="1.6"/><circle cx="6" cy="6" r="3.2" fill="#e8f7f0" stroke="#0c9d93" stroke-width="1.5"/><circle cx="20" cy="20" r="3.2" fill="#e8f7f0" stroke="#0c9d93" stroke-width="1.5"/><circle cx="20" cy="6" r="3.2" fill="#fffefa" stroke="#b6c6be" stroke-width="1.5"/><circle cx="6" cy="20" r="3.2" fill="#fffefa" stroke="#b6c6be" stroke-width="1.5"/></svg></div>
+   <div><h1>Factor Links</h1><small>数字の関係を、解き明かす。</small></div>
+  </div>
+  <div class="topactions"><button class="round" id="sound" aria-label="音を消す" title="音のオン・オフ"></button><button class="round" id="help" aria-label="遊び方" title="遊び方"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9.6 9a2.5 2.5 0 0 1 4.9.5c0 2.1-2.5 2.4-2.5 4.2M12 17.5h.01"/></svg></button></div>
+ </header>
+ <section class="stage" aria-label="ステージと進捗">
+  <button class="stagebutton" id="stage-open" aria-label="ステージを選択"><span class="stageid" id="stage-id">STAGE 01 / 10</span><span class="stagename" id="stage-name">最初のリンク</span><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="m6 9 6 6 6-6"/></svg></button>
+  <span class="progresscount"><b id="done">0</b> / <span id="total">23</span></span>
+ </section>
+ <div class="progressbar"><span id="progress"></span></div>
+ <div class="legend"><div class="legenditem"><i class="legendbar s"></i>実線：公約数なし</div><div class="legenditem"><i class="legendbar d"></i>点線：公約数あり</div></div>
+ <section class="boardframe" aria-label="6×6の数字パズル">
+  <div class="boardmeta"><strong>各行・各列に数字を1回ずつ</strong><span class="tiny" id="numbers">1 · 2 · 3 · 4 · 5 · 6</span></div>
+  <div class="board" role="group" id="board" aria-label="数字を配置する盤面"></div>
+  <div class="boardstatus" id="boardstatus" aria-live="polite">マスを選び、数字を置く</div>
+ </section>
+ <section class="dock" id="dock" aria-label="数字入力">
+  <div class="dockheader"><b id="mode-label">数字を入れる</b><span id="tip">マスを選ぶ → 数字を押す</span></div>
+  <div class="numpad" id="pad"></div>
+  <div class="toolrow">
+   <button class="tool" id="erase" aria-label="数字を消す"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m20 7-8 11H7l-5-5L11 3h7zM8 11l6 6"/></svg>消す</button>
+   <button class="tool" id="undo" aria-label="ひとつ前に戻す"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M9 14 4 9l5-5M4 9h10a6 6 0 0 1 0 12h-1"/></svg>戻す</button>
+   <button class="tool" id="memo" aria-label="メモモード" aria-pressed="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="m14 5 5 5M4 20l5-1 10.5-11a2 2 0 0 0-3-3l-11 11z"/></svg>メモ</button>
+   <button class="primary" id="check">答え合わせ</button>
+  </div>
+ </section>
+</main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<div class="modalback" id="modal" role="dialog" aria-modal="true" aria-label="メニュー"><div class="sheet" id="sheet"></div></div>
+<div class="winback" id="win" role="dialog" aria-modal="true" aria-label="ステージクリア"><div class="wincard"><div class="winicon"><svg width="36" height="36" viewBox="0 0 36 36" fill="none"><circle cx="7" cy="8" r="3.8" fill="#0ba195"/><circle cx="29" cy="8" r="3.8" stroke="#0ba195" stroke-width="2.4"/><circle cx="7" cy="28" r="3.8" stroke="#0ba195" stroke-width="2.4"/><circle cx="29" cy="28" r="3.8" fill="#0ba195"/><path d="M10 10.5 26 25.5" stroke="#0ba195" stroke-width="2.5" stroke-linecap="round"/></svg></div><h2>つながった。</h2><p id="wintext">すべての数字と線が、整いました。</p><button class="primary" id="next">次のステージへ</button><button class="quiet" id="viewboard">完成した盤面を見る</button></div></div>
+<script>
+'use strict';
+const PUZZLES=[{"id":1,"name":"最初のリンク","subtitle":"1〜6","nums":[1,2,3,4,5,6],"solution":[4,5,6,1,2,3,6,3,1,4,5,2,2,6,5,3,4,1,5,1,3,2,6,4,1,2,4,6,3,5,3,4,2,5,1,6],"givens":[0,2,6,9,13,15,16,18,19,25,28,29,32,35],"horizontal":[0,0,0,0,0,1,0,0,0,0,1,0,0,0,0,0,0,0,1,1,0,1,1,1,0,0,1,0,0,0],"vertical":[1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,1,1,0,0,1,1,0,0,0]},{"id":2,"name":"点線をたどろう","subtitle":"1・2・3・4・6・8","nums":[1,2,3,4,6,8],"solution":[1,6,2,3,8,4,3,2,8,4,6,1,2,4,1,8,3,6,8,1,3,6,4,2,6,3,4,2,1,8,4,8,6,1,2,3],"givens":[3,8,10,15,16,17,20,23,25,29,30,31],"horizontal":[0,1,0,0,1,0,1,1,1,0,1,0,0,0,1,0,0,1,1,1,1,0,1,0,0,1,1,0,0,0],"vertical":[0,1,1,0,1,0,0,1,0,1,1,0,1,0,0,1,0,1,1,0,0,1,0,1,1,0,1,0,0,0]},{"id":3,"name":"少しずつ確定","subtitle":"2・3・4・5・6・9","nums":[2,3,4,5,6,9],"solution":[3,5,6,9,4,2,5,4,3,6,2,9,9,6,2,4,3,5,2,9,4,5,6,3,6,3,9,2,5,4,4,2,5,3,9,6],"givens":[3,7,8,12,15,20,22,23,28,30,35],"horizontal":[0,0,1,0,1,0,0,1,1,0,1,1,1,0,0,0,0,0,0,1,1,1,0,0,0,1,0,0,1,1],"vertical":[0,0,1,1,1,0,0,1,0,1,0,0,0,1,1,0,1,0,1,1,0,0,0,0,1,0,0,0,0,1]},{"id":4,"name":"つながる数字","subtitle":"2・3・4・6・8・9","nums":[2,3,4,6,8,9],"solution":[8,6,3,9,4,2,9,4,8,6,2,3,2,8,4,3,9,6,4,3,6,2,8,9,6,2,9,4,3,8,3,9,2,8,6,4],"givens":[0,4,8,9,15,19,25,29,30,34],"horizontal":[1,1,1,0,1,0,1,1,1,0,1,1,0,1,1,0,1,1,1,0,1,0,0,0,0,1,0,1,1,1],"vertical":[0,1,0,1,1,0,0,1,1,1,0,1,1,0,1,0,0,1,1,0,1,1,0,0,1,0,0,1,1,1]},{"id":5,"name":"倍数のネットワーク","subtitle":"3・4・6・8・9・12","nums":[3,4,6,8,9,12],"solution":[4,9,12,6,3,8,6,3,8,9,12,4,9,12,4,3,8,6,8,6,3,4,9,12,3,8,6,12,4,9,12,4,9,8,6,3],"givens":[3,5,8,10,13,15,18,24,34,35],"horizontal":[0,1,1,1,0,1,0,0,1,1,1,1,0,0,1,1,1,0,0,1,0,1,1,1,0,1,0,0,1,1],"vertical":[1,1,1,1,1,1,1,1,1,1,1,1,0,1,0,0,0,1,0,1,1,1,0,1,1,1,1,1,1,1]},{"id":6,"name":"5の仲間","subtitle":"4・6・9・10・15・25","nums":[4,6,9,10,15,25],"solution":[15,10,6,25,9,4,4,6,25,10,15,9,6,15,4,9,10,25,9,25,10,6,4,15,10,9,15,4,25,6,25,4,9,15,6,10],"givens":[3,5,6,14,15,19,28,29,30],"horizontal":[1,1,0,0,0,1,0,1,1,1,1,0,0,0,1,0,1,1,1,0,0,1,0,0,0,0,0,1,1,1],"vertical":[0,1,0,1,1,0,1,1,0,0,1,0,1,1,1,1,1,1,0,0,1,1,0,1,1,0,1,0,0,1]},{"id":7,"name":"二つのグループ","subtitle":"4・6・8・9・10・15","nums":[4,6,8,9,10,15],"solution":[15,4,9,10,8,6,8,10,6,4,15,9,6,15,10,8,9,4,9,8,4,15,6,10,4,6,8,9,10,15,10,9,15,6,4,8],"givens":[0,8,10,13,18,27,31,35],"horizontal":[0,0,0,1,1,1,1,1,0,1,1,1,1,0,0,0,1,0,1,1,1,1,0,0,1,0,1,1,1,1],"vertical":[0,1,1,1,0,1,1,1,1,1,1,0,1,0,1,0,1,1,0,1,1,1,1,1,1,1,0,1,1,0]},{"id":8,"name":"つながりの迷路","subtitle":"6・8・9・10・12・15","nums":[6,8,9,10,12,15],"solution":[10,12,8,9,15,6,15,6,10,12,8,9,6,8,12,15,9,10,12,15,9,10,6,8,8,9,15,6,10,12,9,10,6,8,12,15],"givens":[3,6,7,17,20,25,26,34],"horizontal":[1,1,0,1,1,1,1,1,1,0,1,1,1,1,0,1,1,0,1,1,0,1,1,1,1,0,1,1,1,1],"vertical":[1,1,1,1,0,1,1,1,1,1,0,0,1,0,1,1,1,1,1,1,1,1,1,1,0,0,1,1,1,1]},{"id":9,"name":"隠れた関係","subtitle":"6・10・14・15・21・22","nums":[6,10,14,15,21,22],"solution":[21,14,22,15,10,6,10,15,6,14,21,22,14,22,10,6,15,21,6,21,14,10,22,15,22,10,15,21,6,14,15,6,21,22,14,10],"givens":[4,6,14,17,19,21,25,32],"horizontal":[1,1,0,1,1,1,1,1,1,0,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,1,0,1,1],"vertical":[0,0,1,0,0,1,1,0,1,1,1,0,1,0,1,1,0,1,1,0,0,0,1,0,0,1,1,0,1,1]},{"id":10,"name":"線だけを頼りに","subtitle":"8・9・10・12・15・18","nums":[8,9,10,12,15,18],"solution":[12,15,18,9,10,8,15,10,9,8,12,18,9,8,12,15,18,10,10,12,8,18,15,9,8,18,15,10,9,12,18,9,10,12,8,15],"givens":[0,9,14,19,23,28,33,35],"horizontal":[1,1,1,0,1,1,0,0,1,1,0,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1,0,1,1,0],"vertical":[1,1,1,0,1,1,1,1,1,0,1,1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,0,1]}];
+const STORAGE='kyoyakusu-link-play-v1';
+const $=s=>document.querySelector(s);
+const SOUND_ICON='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4zM15.5 8.5a5 5 0 0 1 0 7M18.5 5.6a9 9 0 0 1 0 12.8"/></svg>';
+const MUTE_ICON='<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H3v6h3l5 4zM16 9l6 6M22 9l-6 6"/></svg>';
+let saved={};try{saved=JSON.parse(localStorage.getItem(STORAGE)||'{}')||{}}catch(_){}
+let stage=Math.min(PUZZLES.length-1,Math.max(0,Number(saved.index)||0));
+let answers=[],notes={},hinted=new Set(),selected=-1,memo=false,undoStack=[],cleared=new Set(Array.isArray(saved.completed)?saved.completed:[]),soundOn=saved.sound!==false;
+let boardCells=[],edgeRefs=[],keyRefs=[],drag=null,over=-1,preventCellClickUntil=0,toastTimer=0,winTimer=0,errorsVisible=false,step=0;
+const reduced=window.matchMedia&&matchMedia('(prefers-reduced-motion: reduce)').matches;
+function current(){return PUZZLES[stage]}
+function gcd(a,b){while(b){[a,b]=[b,a%b]}return a}
+function isFixed(i){return i<0||current().givens.includes(i)||hinted.has(i)}
+function valid(i){return i>=0&&i<36&&!isFixed(i)}
+function firstEditable(){return Array.from({length:36},(_,i)=>i).find(i=>valid(i))??-1}
+function countFilled(){return answers.filter((v,i)=>v!==null&&!current().givens.includes(i)).length}
+function countMissing(){return answers.filter(v=>v===null).length}
+function persist(){try{saved.index=stage;saved.completed=[...cleared];saved.sound=soundOn;saved.states=saved.states||{};saved.states[stage]={filled:answers.slice(),notes:JSON.parse(JSON.stringify(notes)),hinted:[...hinted]};localStorage.setItem(STORAGE,JSON.stringify(saved))}catch(_){}}
+function toast(s){const t=$('#toast');t.textContent=s;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove('show'),1750)}
+// One shared audio context. Tiny, filtered transients rather than sustained tones.
+let audio=null,noise=null,lastRatchet=0,serial=0;
+function audioCtx(){if(!soundOn)return null;const C=window.AudioContext||window.webkitAudioContext;if(!C)return null;try{audio=audio||new C();if(audio.state==='suspended')audio.resume().catch(()=>{});return audio}catch(_){return null}}
+function tone(ctx,f,seconds,vol,kind='sine',end=null,delay=0){let t=ctx.currentTime+delay;const o=ctx.createOscillator(),g=ctx.createGain();o.type=kind;o.frequency.setValueAtTime(f,t);if(end)o.frequency.exponentialRampToValueAtTime(end,t+seconds);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(Math.max(.00011,vol),t+.003);g.gain.exponentialRampToValueAtTime(.0001,t+seconds);o.connect(g);g.connect(ctx.destination);o.start(t);o.stop(t+seconds+.005)}
+function tick(ctx,vol=.015,seconds=.019,cutoff=2300){try{if(!noise){noise=ctx.createBuffer(1,Math.round(ctx.sampleRate*.09),ctx.sampleRate);const a=noise.getChannelData(0);let seed=7391;for(let i=0;i<a.length;i++){seed=seed*16807%2147483647;a[i]=seed/2147483647*2-1}}const src=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),gain=ctx.createGain(),t=ctx.currentTime;src.buffer=noise;filter.type='bandpass';filter.frequency.value=cutoff;filter.Q.value=.76;gain.gain.setValueAtTime(.0001,t);gain.gain.exponentialRampToValueAtTime(vol,t+.002);gain.gain.exponentialRampToValueAtTime(.0001,t+seconds);src.connect(filter);filter.connect(gain);gain.connect(ctx.destination);src.start(t);src.stop(t+seconds+.004)}catch(_){}}
+function sound(kind){const c=audioCtx();if(!c)return;serial++;const shift=(serial%4-1.5)*7;try{
+ if(kind==='select'){tick(c,.008,.013,2700);tone(c,650+shift,.026,.008,'triangle',460+shift)}
+ if(kind==='place'){tick(c,.025,.029,1950);tone(c,330+shift,.079,.022,'triangle',190+shift);tone(c,1100+shift,.023,.009,'sine',670+shift,.007)}
+ if(kind==='memo'){tick(c,.009,.018,4300);tone(c,770+shift,.022,.007,'sine',650+shift)}
+ if(kind==='erase'){tick(c,.011,.017,1100);tone(c,240+shift,.062,.013,'triangle',345+shift)}
+ if(kind==='ratchet'){tick(c,.008,.011,2600);tone(c,920+shift,.014,.004,'triangle',740+shift)}
+ if(kind==='error'){tone(c,290,.1,.019,'triangle',255);tone(c,260,.08,.008,'sine',230,.07)}
+ if(kind==='win'){tick(c,.017,.028,1900);[392,494,587].forEach((hz,i)=>tone(c,hz,.25,.019,'sine',hz*1.003,i*.115))}
+ }catch(_){}}
+function node(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!==undefined)e.textContent=text;return e}
+function buildBoard(){const frag=document.createDocumentFragment();boardCells=[];edgeRefs=[];const p=current();
+ for(let r=0;r<6;r++)for(let c=0;c<6;c++){
+  const i=r*6+c,b=node('button','cell');b.type='button';b.dataset.i=i;b.style.gridRow=String(r*2+1);b.style.gridColumn=String(c*2+1);b.addEventListener('click',()=>cellClick(i));
+  b.addEventListener('pointerdown',e=>cellPointerDown(e,i,b));frag.appendChild(b);boardCells[i]=b;
+  if(c<5){const edge=node('div','edge h '+(p.horizontal[r*5+c]?'d':'s'));edge.style.gridRow=String(r*2+1);edge.style.gridColumn=String(c*2+2);edge.dataset.a=i;edge.dataset.b=i+1;edgeRefs.push({el:edge,a:i,b:i+1,d:p.horizontal[r*5+c]===1});frag.appendChild(edge)}
+  if(r<5){const edge=node('div','edge v '+(p.vertical[r*6+c]?'d':'s'));edge.style.gridRow=String(r*2+2);edge.style.gridColumn=String(c*2+1);edge.dataset.a=i;edge.dataset.b=i+6;edgeRefs.push({el:edge,a:i,b:i+6,d:p.vertical[r*6+c]===1});frag.appendChild(edge)}
+ }
+ $('#board').replaceChildren(frag)
+}
+function buildPad(){const frag=document.createDocumentFragment();keyRefs=[];current().nums.forEach((n,i)=>{
+  const b=node('button','key',n);b.type='button';b.setAttribute('aria-label',`数字 ${n}`);b.dataset.num=n;
+  b.addEventListener('pointerdown',e=>startKey(e,n,b));b.addEventListener('click',e=>{if(e.detail===0)pressKey(n)});
+  frag.appendChild(b);keyRefs.push(b)
+ });$('#pad').replaceChildren(frag)}
+function load(n){clearTimeout(winTimer);$('#win').classList.remove('show');stage=n;memo=false;selected=-1;undoStack=[];step=0;errorsVisible=false;
+ const p=current(),data=saved.states?.[stage]||{};
+ answers=p.solution.map((v,i)=>p.givens.includes(i)?v:null);
+ if(Array.isArray(data.filled)&&data.filled.length===36){data.filled.forEach((v,i)=>{if(!p.givens.includes(i)&&p.nums.includes(v))answers[i]=v})}
+ notes={};if(data.notes&&typeof data.notes==='object')for(const [idx,vals] of Object.entries(data.notes)){const i=Number(idx);if(validFromPuzzle(p,i)&&Array.isArray(vals))notes[i]=vals.filter(v=>p.nums.includes(v))}
+ hinted=new Set(Array.isArray(data.hinted)?data.hinted.filter(i=>validFromPuzzle(p,i)):[]);
+ for(const i of hinted)answers[i]=p.solution[i];
+ selected=firstEditable();buildBoard();buildPad();render();persist()
+}
+function validFromPuzzle(p,i){return Number.isInteger(i)&&i>=0&&i<36&&!p.givens.includes(i)}
+function render(animate=-1){const p=current(),n=countFilled(),tot=36-p.givens.length;
+ $('#stage-id').textContent=`STAGE ${String(stage+1).padStart(2,'0')} / ${PUZZLES.length}`;
+ $('#stage-name').textContent=p.name;$('#done').textContent=n;$('#total').textContent=tot;$('#progress').style.width=`${n/tot*100}%`;
+ $('#numbers').textContent=p.nums.join(' · ');
+ $('#mode-label').textContent=memo?'候補をメモ':'数字を入れる';$('#tip').textContent=memo?'タップで候補を追加・解除':'マスを選ぶ → 数字を押す';$('#dock').classList.toggle('memo',memo);
+ $('#memo').classList.toggle('on',memo);$('#memo').setAttribute('aria-pressed',String(memo));
+ $('#undo').disabled=undoStack.length===0;$('#erase').disabled=!valid(selected)||(answers[selected]===null&&!notes[selected]?.length);
+ $('#sound').innerHTML=soundOn?SOUND_ICON:MUTE_ICON;$('#sound').setAttribute('aria-label',soundOn?'音を消す':'音を出す');
+ $('#boardstatus').innerHTML=valid(selected)?`<strong>${Math.floor(selected/6)+1}行 ${selected%6+1}列</strong> を選択中${memo?' · メモモード':''}`:'マスを選び、数字を置く';
+ for(let i=0;i<36;i++){
+  const b=boardCells[i],v=answers[i],fixed=isFixed(i),given=current().givens.includes(i);
+  b.className='cell'+(fixed?' fixed':'')+(hinted.has(i)?' givenhint':'')+(!fixed&&v!==null?' entered':'')+(selected===i&&!fixed?' selected':'')+(!fixed&&i!==selected&&selected>=0&&(Math.floor(i/6)===Math.floor(selected/6)||i%6===selected%6)?' peer':'')+(v!==null&&v>=10?' twodigit':'');
+  if(v!==null){const span=node('span','digit',v);if(i===animate)span.classList.add('place');b.replaceChildren(span)}
+  else if(notes[i]?.length){const wrap=node('span','notes');for(const num of p.nums){wrap.appendChild(node('span',notes[i].includes(num)?'on':'',notes[i].includes(num)?num:'·'))}b.replaceChildren(wrap)}
+  else b.replaceChildren();
+  b.setAttribute('aria-label',`${Math.floor(i/6)+1}行${i%6+1}列、${fixed?'固定の数字 ':''}${v===null?'空欄':v}${selected===i?'、選択中':''}`);
+  b.setAttribute('aria-pressed',String(selected===i));
+ }
+ edgeRefs.forEach(e=>{e.el.className=e.el.className.replace(/\s(?:near|tap|invalid|solve)/g,'');if(selected>=0&&(e.a===selected||e.b===selected))e.el.classList.add('near')});
+}
+function clearErrors(){if(!errorsVisible)return;errorsVisible=false;boardCells.forEach(b=>b.classList.remove('bad'));edgeRefs.forEach(e=>e.el.classList.remove('invalid'))}
+function select(i){if(!valid(i)){sound('select');return}clearErrors();selected=i;sound('select');render()}
+function cellClick(i){if(performance.now()<preventCellClickUntil)return;select(i)}
+function snapshot(){undoStack.push({answers:answers.slice(),notes:JSON.parse(JSON.stringify(notes)),hinted:[...hinted],selected});if(undoStack.length>150)undoStack.shift()}
+function change(i,n){if(!valid(i))return;if(answers[i]===n){sound('select');return}
+ snapshot();answers[i]=n;delete notes[i];selected=i;step++;clearErrors();persist();render(i);spark(i);sound('place')}
+function note(i,n){if(!valid(i))return;if(answers[i]!==null){toast('数字を消すと候補をメモできます');sound('select');return}
+ snapshot();const arr=notes[i]||[];notes[i]=arr.includes(n)?arr.filter(v=>v!==n):current().nums.filter(v=>arr.includes(v)||v===n);selected=i;step++;clearErrors();persist();render();sound('memo')}
+function pressKey(n){if(!valid(selected)){toast('数字を置くマスを選んでください');sound('select');return}memo?note(selected,n):change(selected,n)}
+function spark(i){if(reduced)return;edgeRefs.forEach(e=>{if(e.a!==i&&e.b!==i)return;const el=e.el;el.classList.remove('tap');void el.offsetWidth;el.classList.add('tap');setTimeout(()=>el.classList.remove('tap'),280)})}
+function erase(){if(!valid(selected)){sound('select');return}if(answers[selected]===null&&!notes[selected]?.length)return;snapshot();answers[selected]=null;delete notes[selected];step++;clearErrors();persist();render();sound('erase')}
+function undo(){if(!undoStack.length)return;const prev=undoStack.pop();answers=prev.answers;notes=prev.notes;hinted=new Set(prev.hinted);selected=prev.selected;clearErrors();persist();render();sound('erase')}
+function switchMemo(){memo=!memo;sound('select');render()}
+function moveNumber(src,dst){if(!valid(src)||!valid(dst)||src===dst||answers[src]===null)return false;
+ snapshot();const a=answers[src],b=answers[dst];answers[dst]=a;answers[src]=b;delete notes[src];delete notes[dst];selected=dst;step++;clearErrors();persist();render(dst);spark(dst);sound('place');return true}
+function check(){if(countMissing()){toast(`あと ${countMissing()} マスを埋めよう`);sound('select');return}
+ const p=current(),badEdges=[],badCells=new Set();for(const e of edgeRefs)if((gcd(answers[e.a],answers[e.b])>1)!==e.d)badEdges.push(e);
+ for(let axis=0;axis<2;axis++)for(let j=0;j<6;j++){
+   const indices=Array.from({length:6},(_,k)=>axis===0?j*6+k:k*6+j),groups=new Map();
+   for(const i of indices){const a=groups.get(answers[i])||[];a.push(i);groups.set(answers[i],a)}
+   for(const group of groups.values())if(group.length>1)group.forEach(i=>badCells.add(i))
+ }
+ if(badEdges.length||badCells.size){clearErrors();errorsVisible=true;for(const e of badEdges){e.el.classList.add('invalid');badCells.add(e.a);badCells.add(e.b)}for(const i of badCells)boardCells[i].classList.add('bad');toast('線と、行・列の条件を見直そう');sound('error');return}
+ cleared.add(p.id);persist();sound('win');
+ if(!reduced)edgeRefs.forEach((e,k)=>{e.el.style.setProperty('--delay',`${(.012*k).toFixed(3)}s`);e.el.classList.add('solve')});
+ $('#wintext').textContent=`ステージ ${String(stage+1).padStart(2,'0')} クリア。36個の数字と60本の線が、ひとつになりました。`;
+ $('#next').textContent=stage===PUZZLES.length-1?'最初のステージへ':'次のステージへ';
+ clearTimeout(winTimer);winTimer=setTimeout(()=>$('#win').classList.add('show'),reduced?110:1320)
+}
+// Pointer drag from keypad or already entered cells. Plain taps never alter other cells.
+function startKey(e,n,key){if(e.button!==0)return;drag={type:'key',id:e.pointerId,n,src:-1,x:e.clientX,y:e.clientY,key,moved:false};try{key.setPointerCapture(e.pointerId)}catch(_){}key.classList.add('pressed')}
+function cellPointerDown(e,i,key){if(e.button!==0||!valid(i)||answers[i]===null)return;drag={type:'cell',id:e.pointerId,n:answers[i],src:i,x:e.clientX,y:e.clientY,key,moved:false};try{key.setPointerCapture(e.pointerId)}catch(_){}}
+function pointerMove(e){if(!drag||e.pointerId!==drag.id)return;const distance=Math.hypot(e.clientX-drag.x,e.clientY-drag.y);
+ if(!drag.moved&&distance>12){drag.moved=true;drag.ghost=node('div','ghost'+(memo?' memo':''),drag.n);document.body.appendChild(drag.ghost);if(drag.type==='cell')drag.key.classList.add('drag-source')}
+ if(!drag.moved)return;e.preventDefault();drag.ghost.style.left=e.clientX+'px';drag.ghost.style.top=e.clientY+'px';
+ const under=document.elementFromPoint(e.clientX,e.clientY)?.closest('.cell');const i=under?Number(under.dataset.i):-1;
+ const target=valid(i)?i:-1;
+ if(over!==target){if(over>=0)boardCells[over].classList.remove('draghover');over=target;if(over>=0){boardCells[over].classList.add('draghover');if(performance.now()-lastRatchet>68){sound('ratchet');lastRatchet=performance.now()}}}
+}
+function pointerEnd(e){if(!drag||e.pointerId!==drag.id)return;const d=drag;d.key.classList.remove('pressed','drag-source');if(d.ghost)d.ghost.remove();
+ if(d.moved){preventCellClickUntil=performance.now()+260;if(over>=0){if(d.type==='key'){memo?note(over,d.n):change(over,d.n)}else moveNumber(d.src,over)}else sound('select')}
+ else if(d.type==='key')pressKey(d.n);
+ if(over>=0)boardCells[over].classList.remove('draghover');drag=null;over=-1}
+function pointerCancel(e){if(!drag||e.pointerId!==drag.id)return;drag.key.classList.remove('pressed','drag-source');if(drag.ghost)drag.ghost.remove();if(over>=0)boardCells[over].classList.remove('draghover');drag=null;over=-1}
+document.addEventListener('pointermove',pointerMove,{passive:false});document.addEventListener('pointerup',pointerEnd);document.addEventListener('pointercancel',pointerCancel);
+function openSheet(html){$('#sheet').innerHTML=html;$('#modal').classList.add('show');sound('select')}
+function closeSheet(){$('#modal').classList.remove('show')}
+function stages(){const listing=PUZZLES.map((g,i)=>`<button class="stageopt ${i===stage?'active':''}" data-stage="${i}"><em>${String(i+1).padStart(2,'0')}</em><span><b>${g.name}</b><small>${g.nums.join(' · ')}</small></span><span class="tick">${cleared.has(g.id)?'✓':i===stage?'●':'›'}</span></button>`).join('');openSheet(`<div class="sheetheader"><h2>ステージを選ぶ</h2><button class="x" data-close aria-label="閉じる">×</button></div><p class="sheetp">数字の組み合わせが変わると、つながり方も変わる。</p><div class="stagelist">${listing}</div><button class="quiet" data-reset>このステージを最初から</button>`)}
+function help(){openSheet(`<div class="sheetheader"><h2>遊び方</h2><button class="x" data-close aria-label="閉じる">×</button></div><p class="sheetp">数字同士のつながりを読み解いて、空いているマスを埋めよう。</p><div class="examples"><div class="example"><div class="pair">3 <i class="s"></i> 4</div><strong>実線</strong><p>1以外の公約数がない</p></div><div class="example"><div class="pair">3 <i class="d"></i> 6</div><strong>点線</strong><p>1以外の公約数がある</p></div></div><ol class="steps"><li>各行と各列に、表示された<strong>6種類の数字</strong>を一度ずつ使う。</li><li><strong>マスをタップ → 下の数字をタップ</strong>で配置する。</li><li>数字キーを盤面へドラッグして配置。配置済みの数字同士もドラッグで入れ替えられる。</li><li>メモで候補を書き込み、戻すで操作を取り消せる。</li><li>正しいかどうかは、最後の答え合わせまで表示しない。</li></ol><button class="primary sheetbutton" data-close>パズルに戻る</button><button class="quiet" data-hint>選んだマスの答えを1つ見る</button>`)}
+function giveHint(){const p=current();let i=selected;if(!valid(i)||answers[i]===p.solution[i])i=answers.findIndex((v,j)=>valid(j)&&v!==p.solution[j]);if(i<0){toast('ヒントを表示できるマスがありません');return}
+ snapshot();answers[i]=p.solution[i];delete notes[i];hinted.add(i);selected=firstEditable();clearErrors();persist();render(i);spark(i);sound('place');toast('ヒントを1つ表示しました')}
+function resetConfirm(){openSheet(`<div class="sheetheader"><h2>最初からやり直す？</h2><button class="x" data-close aria-label="閉じる">×</button></div><p class="sheetp">このステージの数字とメモを消します。他のステージの記録は残ります。</p><button class="primary sheetbutton" data-confirm-reset>やり直す</button><button class="quiet" data-close>キャンセル</button>`)}
+$('#modal').addEventListener('click',e=>{if(e.target===$('#modal')||e.target.closest('[data-close]')){closeSheet();return}const s=e.target.closest('[data-stage]');if(s){const n=Number(s.dataset.stage);closeSheet();load(n);sound('select');return}if(e.target.closest('[data-reset]')){resetConfirm();return}if(e.target.closest('[data-confirm-reset]')){saved.states=saved.states||{};delete saved.states[stage];closeSheet();load(stage);toast('やり直しました');sound('erase');return}if(e.target.closest('[data-hint]')){closeSheet();giveHint()}});
+$('#stage-open').addEventListener('click',stages);$('#help').addEventListener('click',help);$('#sound').addEventListener('click',()=>{soundOn=!soundOn;persist();render();if(soundOn)sound('place')});
+$('#erase').addEventListener('click',erase);$('#undo').addEventListener('click',undo);$('#memo').addEventListener('click',switchMemo);$('#check').addEventListener('click',check);
+$('#next').addEventListener('click',()=>{$('#win').classList.remove('show');load((stage+1)%PUZZLES.length)});$('#viewboard').addEventListener('click',()=>$('#win').classList.remove('show'));
+document.addEventListener('keydown',e=>{if($('#modal').classList.contains('show')||$('#win').classList.contains('show')){if(e.key==='Escape'){closeSheet();$('#win').classList.remove('show')}return}
+ if(e.key>='1'&&e.key<='6'){e.preventDefault();pressKey(current().nums[Number(e.key)-1])}
+ else if(e.key==='Backspace'||e.key==='Delete'){e.preventDefault();erase()}
+ else if(e.key==='Enter'&&e.target===document.body){e.preventDefault();check()}
+ else if(e.key.toLowerCase()==='m'&&e.target===document.body){e.preventDefault();switchMemo()}
+ else if(e.key.toLowerCase()==='z'&&(e.metaKey||e.ctrlKey)){e.preventDefault();undo()}
+ else if(e.key.startsWith('Arrow')){e.preventDefault();const r=Math.floor(Math.max(0,selected)/6),c=Math.max(0,selected)%6;let next=e.key==='ArrowUp'?Math.max(0,r-1)*6+c:e.key==='ArrowDown'?Math.min(5,r+1)*6+c:e.key==='ArrowLeft'?r*6+Math.max(0,c-1):r*6+Math.min(5,c+1);if(valid(next))select(next)}
+});
+load(stage);
+</script>
+</body>
+</html>
