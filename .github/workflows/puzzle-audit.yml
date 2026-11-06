@@ -1,0 +1,11 @@
+name: Factor Links - Puzzle Quality Gate
+on:
+  push:
+  pull_request:
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify puzzles and logical progression
+        run: node tools/audit.mjs
