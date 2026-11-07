@@ -112,7 +112,7 @@ const partialFilled=partial.solution.map((v,i)=>partial.givens.includes(i)?v:nul
 const openCell=partialFilled.indexOf(null);partialFilled[openCell]=partial.solution[openCell];
 const ongoing=new Map([['kyoyakusu-link-play-v3',JSON.stringify({
  index:partialIndex,completed:[],sound:false,
- states:{7:{filled:partialFilled,notes:{},hinted:[]}}
+ states:{7:{puzzleId:partial.id,revision:partial.revision||1,filled:partialFilled,notes:{},hinted:[]}}
 })]]);
 const resumed=launch(ongoing);
 assert.equal(resumed.app.state().missing,partial.solution.length-partial.givens.length-1,
