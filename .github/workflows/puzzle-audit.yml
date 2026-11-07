@@ -8,4 +8,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Verify puzzles and logical progression
-        run: node tools/audit.mjs
+        run: |
+          node tools/audit.mjs
+          node tools/smoke.mjs
