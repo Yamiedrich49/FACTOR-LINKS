@@ -7,7 +7,7 @@ const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
 const script=html.match(/<script>([\s\S]*?)<\/script>/)?.[1];
 if(!script)throw Error('Inline game script not found');
 const parse=name=>JSON.parse(html.match(new RegExp('^const '+name+'=(\\[.*\\]);\\s*$','m'))[1]);
-const intro=parse('INTRO_PUZZLES'),oldLevels=parse('LEGACY_PUZZLES');
+const pairs=parse('PAIR_PUZZLES'),intro=parse('INTRO_PUZZLES'),oldLevels=parse('LEGACY_PUZZLES'),all=[...pairs,...intro,...oldLevels];
 class Element{
  constructor(tag='div'){
   this.tagName=tag;this.children=[];this.dataset={};this.attrs={};
@@ -44,31 +44,46 @@ function launch(stored=new Map()){
  return {app,stored};
 }
 const {app}=launch(),distribution={2:0,3:0,4:0,5:0,6:0};
-for(let stage=0;stage<50;stage++){
+for(let stage=0;stage<56;stage++){
  app.load(stage);
  const {number:n,cells,lines,keys,missing,selected}=app.state();
+ const p=all[stage];
  distribution[n]++;
- assert.equal(cells,n*n,'cells stage '+(stage+1));
- assert.equal(lines,2*n*(n-1),'edges stage '+(stage+1));
- assert.equal(keys,n,'keypad stage '+(stage+1));
- assert.ok(missing>0&&missing<n*n,'blanks stage '+(stage+1));
+ assert.equal(cells,p.mode==='pair'?2:n*n,'cells stage '+(stage+1));
+ assert.equal(lines,p.mode==='pair'?1:p.mode==='latin'?0:2*n*(n-1),'edges stage '+(stage+1));
+ assert.equal(keys,p.nums.length,'keypad stage '+(stage+1));
+ assert.ok(missing>0&&missing<cells,'blanks stage '+(stage+1));
  assert.ok(selected>=0,'editable selection stage '+(stage+1));
- const nums=stage<40?intro[stage].nums:oldLevels[stage-40].nums;
+ const nums=p.nums;
  app.pressKey(nums[0]);
  assert.equal(app.state().missing,missing-1,'input stage '+(stage+1));
  app.undo();
  assert.equal(app.state().missing,missing,'undo stage '+(stage+1));
  assert.ok(app.solve(),'complete stage '+(stage+1));
 }
-assert.equal(app.completed().size,50);
-assert.deepEqual(distribution,{2:3,3:9,4:13,5:10,6:15});
+assert.equal(app.completed().size,56);
+assert.deepEqual(distribution,{2:9,3:9,4:13,5:10,6:15});
+const newPlayer=launch();
+newPlayer.app.load(0);
+newPlayer.app.pressKey(3);newPlayer.app.check();
+assert.ok(!newPlayer.app.completed().has(2001),'wrong factor answer must not clear');
+newPlayer.app.pressKey(4);newPlayer.app.check();
+assert.ok(newPlayer.app.completed().has(2001),'correct factor answer should clear');
 const oldSaved=new Map([['kyoyakusu-link-play-v1',JSON.stringify({
  index:2,completed:[3],sound:false,
  states:{2:{filled:oldLevels[2].solution.slice(),notes:{},hinted:[]}}
 })]]);
 const migrated=launch(oldSaved);
-assert.equal(migrated.app.state().index,42,'legacy stage index');
+assert.equal(migrated.app.state().index,48,'legacy stage index');
 assert.equal(migrated.app.state().id,3,'legacy stage puzzle id');
 assert.ok(migrated.app.completed().has(3),'legacy cleared set');
-assert.ok(oldSaved.has('kyoyakusu-link-play-v2'),'new save created');
-console.log('PASS: 50-stage UI smoke, input/undo/clear and legacy save migration');
+assert.ok(oldSaved.has('kyoyakusu-link-play-v3'),'new save created');
+const v2Saved=new Map([['kyoyakusu-link-play-v2',JSON.stringify({
+ index:42,completed:[3,1008],sound:true,
+ states:{42:{filled:oldLevels[2].solution.slice(),notes:{},hinted:[]}}
+})]]);
+const v2Migrated=launch(v2Saved);
+assert.equal(v2Migrated.app.state().index,48,'v2 saved stage shifted by six');
+assert.equal(v2Migrated.app.state().id,3,'v2 retained original puzzle');
+assert.ok(v2Migrated.app.completed().has(1008),'v2 intro completion retained');
+console.log('PASS: 56-stage UI smoke, pair/latin/link checks, input/undo/clear and v1/v2 migration');
