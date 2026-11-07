@@ -11,3 +11,4 @@ jobs:
         run: |
           node tools/audit.mjs
           node tools/smoke.mjs
+          node tools/ui-quality.mjs
