@@ -117,4 +117,24 @@ const ongoing=new Map([['kyoyakusu-link-play-v3',JSON.stringify({
 const resumed=launch(ongoing);
 assert.equal(resumed.app.state().missing,partial.solution.length-partial.givens.length-1,
  'incomplete puzzles should still resume progress');
+// Regression: stage 7 previously had 3 initial digits (positions 1,2,3).
+// Importing that untouched old save without a clue-revision check would fill
+// the new right column automatically and display the entire answer.
+const revised=all[6],olderClues=[null,revised.solution[1],revised.solution[2],revised.solution[3]];
+const revisionSave=new Map([['kyoyakusu-link-play-v3',JSON.stringify({
+ index:6,completed:[],sound:false,
+ states:{6:{filled:olderClues,notes:{},hinted:[]}}
+})]]);
+const revisedApp=launch(revisionSave);
+assert.equal(revisedApp.app.state().missing,2,'stage 7 old initial clues must not prefill new layout');
+const persistedRevision=JSON.parse(revisionSave.get('kyoyakusu-link-play-v3'));
+assert.equal(persistedRevision.states[6].revision,2,'stage 7 stores the new clue revision');
+// Once upgraded, legitimate in-progress entries must still resume.
+const revisedPartial=[revised.solution[0],revised.solution[1],revised.solution[2],null];
+const currentSave=new Map([['kyoyakusu-link-play-v3',JSON.stringify({
+ index:6,completed:[],sound:false,
+ states:{6:{puzzleId:revised.id,revision:2,filled:revisedPartial,notes:{},hinted:[]}}
+})]]);
+const currentApp=launch(currentSave);
+assert.equal(currentApp.app.state().missing,1,'revised lesson must resume partial progress');
 console.log('PASS: 56-stage UI smoke, replay blanks, stale solved save repair, partial resume and v1/v2 migration');
