@@ -27,11 +27,25 @@ const tests=[
  ['.boardmeta .tiny','#fffefa'],
  ['.boardstatus','#fffefa'],
  ['.dockheader span','#fffefa'],
- ['.lessontext span','#f0f8f3']
+ ['.lessontext span','#f0f8f3'],
+ ['.wordmark small','#f6f8f5'],
+ ['.stageopt small','#f9fbf8'],
+ ['.sheetp','#fffefa'],
+ ['.example p','#f8fbf8']
 ];
 for(const [selector,bg] of tests){
  const fg=color(selector),ratio=contrast(fg,bg);
  assert.ok(ratio>=4.5,selector+': text contrast '+ratio.toFixed(2)+' < 4.5');
+}
+function solidRule(selector){
+ const start=html.indexOf(selector+'{');
+ assert.ok(start>=0,'missing line rule '+selector);
+ const content=html.slice(start,html.indexOf('}',start));
+ return content.match(/background:(#[0-9a-fA-F]{6})/)?.[1];
+}
+for(const selector of ['.edge.h.s:before','.edge.v.s:before']){
+ const stroke=solidRule(selector);
+ assert.ok(stroke&&contrast(stroke,'#fffefa')>=3.0,selector+': clue line contrast must be >= 3:1');
 }
 const fragment=html.match(/if\(kind==='win'\)\{[\s\S]*?\n  \}/)?.[0];
 assert.ok(fragment,'win sound missing');
@@ -45,4 +59,4 @@ for(let i=0;i<4;i++){
 assert.ok(html.includes("tone(c,520,.062,.015,'triangle',420)")&&
  html.includes("tone(c,260,.062,.009,'sine',210)"),
  'placement click must use matching octave voices');
-console.log('PASS: 6 key text contrasts ≥4.5:1; G-major completion notes; octave placement tones');
+console.log('PASS: 10 text contrasts ≥4.5:1, solid-line contrast ≥3:1, G-major completion, octave placement');
