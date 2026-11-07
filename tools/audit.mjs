@@ -1,4 +1,4 @@
-// FACTOR LINKS quality gate: validates 2x2–6x6 lessons and advanced 6x6.
+// FACTOR LINKS quality gate: validates 6 pair lessons, 3 Latin tutorials and 47 linked boards.
 // Node.js 18+, no dependencies. Usage: node tools/audit.mjs [--json]
 import {readFileSync} from 'node:fs';
 const html=readFileSync(new URL('../index.html',import.meta.url),'utf8');
@@ -8,8 +8,8 @@ const parse=name=>{
  if(!found)throw Error(name+' not embedded as JSON array');
  return JSON.parse(found[1]);
 };
-const intro=parse('INTRO_PUZZLES'),legacy=parse('LEGACY_PUZZLES');
-const puzzles=[...intro,...legacy];
+const pairs=parse('PAIR_PUZZLES'),intro=parse('INTRO_PUZZLES'),legacy=parse('LEGACY_PUZZLES');
+const puzzles=[...pairs,...intro,...legacy];
 const bits=m=>{let a=0;for(;m;m&=m-1)a++;return a};
 const gcd=(a,b)=>b?gcd(b,a%b):a;
 const unique=xs=>new Set(xs).size===xs.length;
@@ -28,6 +28,16 @@ const ctxFor=p=>{
 };
 function validate(p){
  const err=[],n=p.size||6;
+ if(p.mode==='pair'){
+  if(p.solution.length!==2||p.givens.length!==1||p.givens[0]!==0)err.push('pair shape');
+  if(!Array.isArray(p.nums)||p.nums.length<2||p.nums.length>4||!unique(p.nums)||p.nums.some(x=>!Number.isSafeInteger(x)||x<1))err.push('pair options');
+  if(p.horizontal.length!==1||p.vertical.length!==0)err.push('pair line');
+  if(!err.length){
+   const [a,b]=p.solution,correct=p.nums.filter(v=>(gcd(a,v)>1)===(p.horizontal[0]===1));
+   if(correct.length!==1||correct[0]!==b)err.push('pair requires exactly one correct option');
+  }
+  return err;
+ }
  if(!Number.isInteger(n)||n<2||n>6)err.push('board size');
  if(!Array.isArray(p.nums)||p.nums.length!==n||!unique(p.nums)||p.nums.some(x=>!Number.isSafeInteger(x)||x<=0))err.push('number set');
  if(!Array.isArray(p.solution)||p.solution.length!==n*n)err.push('solution length');
@@ -108,13 +118,19 @@ function countSolutions(c,givens=c.p.givens,limit=2){
 }
 let problems=0;
 if(JSON.stringify(dataset.levels)!==JSON.stringify(intro)){console.error('Embedded intro puzzles differ from data/intro-levels.json');problems++}
-if(puzzles.length!==50){console.error('Expected 50 stages, found '+puzzles.length);problems++}
+if(puzzles.length!==56){console.error('Expected 56 stages, found '+puzzles.length);problems++}
 if(!unique(puzzles.map(p=>p.id))){console.error('Duplicated puzzle ids');problems++}
 const records=[];
 for(let i=0;i<puzzles.length;i++){
  const p=puzzles[i],n=p.size||6,errors=validate(p);
  if(errors.length){records.push({stage:i+1,name:p.name,n,errors});problems++;continue}
- const c=ctxFor(p),proof=countSolutions(c);
+ if(p.mode==='pair'){
+  records.push({stage:i+1,name:p.name,n,mode:p.mode,givens:1,empty:1,lines:1,solutions:1,remaining:[0,0,0],proofNodes:1});
+  continue;
+ }
+ const c=ctxFor(p);
+ if(p.mode==='latin')c.edges=[];
+ const proof=countSolutions(c);
  if(proof.solutions!==1)problems++;
  const remaining=[1,2,3].map(t=>{
   const m=initial(c);
@@ -122,7 +138,7 @@ for(let i=0;i<puzzles.length;i++){
   return m.filter(x=>bits(x)>1).length;
  });
  records.push({stage:i+1,name:p.name,n,givens:p.givens.length,empty:n*n-p.givens.length,
-  lines:2*n*(n-1),solutions:proof.solutions,remaining,proofNodes:proof.nodes});
+  lines:p.mode==='latin'?0:2*n*(n-1),solutions:proof.solutions,remaining,proofNodes:proof.nodes});
 }
 if(process.argv.includes('--json'))console.log(JSON.stringify({problems,records},null,2));
 else{
