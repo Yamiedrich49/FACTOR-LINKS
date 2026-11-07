@@ -63,6 +63,17 @@ for(let stage=0;stage<56;stage++){
 }
 assert.equal(app.completed().size,56);
 assert.deepEqual(distribution,{2:9,3:9,4:13,5:10,6:15});
+// Regression: after completing a level, revisiting must start with blank cells,
+// not show a fully solved answer. The clear badge must remain intact.
+for(const stage of [0,6,7,8,9,15,35,45,55]){
+ app.load(stage);
+ const p=all[stage];
+ assert.equal(app.state().missing,p.solution.length-p.givens.length,
+  'completed stage '+(stage+1)+' must reopen from initial clues only');
+ assert.ok(app.completed().has(p.id),'replay must preserve clear badge');
+}
+assert.deepEqual([intro[0].givens.length,intro[1].givens.length,intro[2].givens.length],[2,2,1],
+ 'first Latin lessons should retain two or three blanks');
 const newPlayer=launch();
 newPlayer.app.load(0);
 newPlayer.app.pressKey(3);newPlayer.app.check();
@@ -86,4 +97,24 @@ const v2Migrated=launch(v2Saved);
 assert.equal(v2Migrated.app.state().index,48,'v2 saved stage shifted by six');
 assert.equal(v2Migrated.app.state().id,3,'v2 retained original puzzle');
 assert.ok(v2Migrated.app.completed().has(1008),'v2 intro completion retained');
-console.log('PASS: 56-stage UI smoke, pair/latin/link checks, input/undo/clear and v1/v2 migration');
+// Regression: some previous saves contain completed answers but have no clear flag.
+const staleIndex=6,stale=all[staleIndex];
+const solvedStale=new Map([['kyoyakusu-link-play-v3',JSON.stringify({
+ index:staleIndex,completed:[],sound:false,
+ states:{6:{filled:stale.solution.slice(),notes:{},hinted:[]}}
+})]]);
+const recovered=launch(solvedStale);
+assert.equal(recovered.app.state().missing,stale.solution.length-stale.givens.length,
+ 'solved board in a stale save must not appear fully prefilled');
+assert.ok(!recovered.app.completed().has(stale.id),'restore should not invent a clear badge');
+const partialIndex=7,partial=all[partialIndex];
+const partialFilled=partial.solution.map((v,i)=>partial.givens.includes(i)?v:null);
+const openCell=partialFilled.indexOf(null);partialFilled[openCell]=partial.solution[openCell];
+const ongoing=new Map([['kyoyakusu-link-play-v3',JSON.stringify({
+ index:partialIndex,completed:[],sound:false,
+ states:{7:{filled:partialFilled,notes:{},hinted:[]}}
+})]]);
+const resumed=launch(ongoing);
+assert.equal(resumed.app.state().missing,partial.solution.length-partial.givens.length-1,
+ 'incomplete puzzles should still resume progress');
+console.log('PASS: 56-stage UI smoke, replay blanks, stale solved save repair, partial resume and v1/v2 migration');
